@@ -1,7 +1,41 @@
 pragma solidity ^0.4.11;
 
-/// @title Voting with delegation.
-contract Ballot {
+/// @title A particular categeory for a hackthon with a submission mechanism.
+contract Categories {
+
+    uint bondAmount;
+    uint rewardAmount;
+
+    struct Submission {
+        string fileName; //body of work representing the submission (do this off the chain)
+        string[] references; //references of all other work used in submissions creation
+        address[] contributors; //all contributors of submission including sender
+    }
+
+    mapping(address => Submission) public submissionList; // holds all submissions for this category
+
+    modifier checkBondPaid () {
+        
+    }
+
+    modifier checkValue(uint amount) {
+        _;
+        if (msg.value > amount) {
+        uint refund = msg.value - amount;
+        msg.sender.transfer(refund);
+        }}
+
+
+    function Submit(string fileName string[] references address[] contributors) {
+        if (msg.) {
+
+        }
+    }
+
+
+   // ____________________________________________________________________________________________
+
+
     // This declares a new complex type which will
     // be used for variables later.
     // It will represent a single voter.
