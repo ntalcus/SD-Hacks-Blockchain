@@ -53,7 +53,7 @@ contract Competition {
 		if (bond < 0 || catName.length == 0 || reward > msg.value() || 0 <= weight || 100 >= weight) {
 			throw;
 		}
-		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight);
+		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight, competitionEnd);
 		categories.push(_catAddress);
 		CategoryCreated(catOwner, catName, bond, reward);
 	}
