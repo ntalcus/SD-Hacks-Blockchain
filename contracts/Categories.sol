@@ -3,33 +3,49 @@ pragma solidity ^0.4.11;
 /// @title A particular categeory for a hackthon with a submission mechanism.
 contract Categories {
 
-    uint bondAmount;
-    uint rewardAmount;
+    private uint _bondAmount;
+    private uint _rewardAmount;
+    private uint _endTimeSubmission;
+    private uint _endTimeVote;
 
     struct Submission {
         string fileName; //body of work representing the submission (do this off the chain)
         string[] references; //references of all other work used in submissions creation
-        address[] contributors; //all contributors of submission including sender
+        address[] contributors; //all contributors of submission including sender (assume sender didn't input themselves)
+        uint upVotes;
+        uint downVotes;
     }
 
     mapping(address => Submission) public submissionList; // holds all submissions for this category
 
     modifier checkBondPaid () {
-        
+        require (msg.value >= bondAmount);
+        _;
+        if (msg.value > bondAmount) {
+            uint refund = msg.value - bondAmount;
+            msg.sender.transfer(refund);
+        }
     }
 
-    modifier checkValue(uint amount) {
-        _;
-        if (msg.value > amount) {
-        uint refund = msg.value - amount;
-        msg.sender.transfer(refund);
-        }}
+    /** Category constructor*/
+    function Categories(uint endTime, uint bondAmount, uint rewardAmount) {
+        this._bondAmount = bondAmount;
+        this._rewardAmount = rewardAmount;
+        this._endTime = endTime
+    }
 
+    function Submit(string fileName, string[] references, address[] contributors) checkBondPaid() {
+        submissionList[msg.sender].fileName = fileName;
+        submissionList[msg.sender].references = references;
+        contributors.push(msg.sender);
+        submissionList[msg.sender].contributors = contributors;
 
-    function Submit(string fileName string[] references address[] contributors) {
-        if (msg.) {
+        submissionList[msg.sender].upVotes = 0;
+        submissionList[msg.sender].downVotes = 0;
+    }
 
-        }
+    function Vote() {
+
     }
 
 
