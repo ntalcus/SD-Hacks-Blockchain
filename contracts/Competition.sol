@@ -22,15 +22,13 @@ contract Competition {
 
 	// Modifiers that check the status
 	modifier checkState(uint state) {
-		require(uint(compStatus) == state)
+		require(uint(compStatus) == state);
 		_;
 	}
 
 	// Events that mark certain times.
 	event Commenced(address compCreator);
 	event CategoryCreated(address catCreator, string catName, uint bond);
-	event CategoryClosed(string catName, address winner);
-	event Ended(string compName);
 
 	// initiate a competition
 	function Competition
@@ -44,10 +42,10 @@ contract Competition {
 	submissionEnd = now + _submissionEnd;
 	competitionEnd = now + _competitionTime;
 	Commenced(creator);
-	return this.address;
+	return this;
 	}
 
-	// make this function only work if it's called from the commence function or it's called during the submission phase
+	// it's called during the submission phase
 	function createCategory
 	(address catOwner, string catName, uint bond, uint reward) 
 		checkState(1)
@@ -55,8 +53,8 @@ contract Competition {
 		if (bond < 0 || catName.length == 0 || reward > msg.value() || 0 <= weight || 100 >= weight) {
 			throw;
 		}
-		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight)
-		categories.push
+		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight);
+		categories.push(_catAddress);
 		CategoryCreated(catOwner, catName, bond, reward);
 	}
 	
