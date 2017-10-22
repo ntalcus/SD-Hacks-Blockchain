@@ -19,29 +19,27 @@ contract Categories {
         address[] retrieved; //list of all contributors who withdrew their bounty and/or bond amount
         uint upVotes; //amount of upvotes
         uint downVotes; //amount of downVotes
-        mapping voted; // mapping of addresses who already voted (up or down) for this submission
+        mapping(address => bool) voted; // mapping of addresses who already voted (up or down) for this submission
     }
 
     mapping(string => Submission) public submissionList; // holds all submissions for this category
 
     modifier checkBondPaid () {
-        require (msg.value >= bondAmount);
+        require (msg.value >= _bondAmount);
         _;
-        if (msg.value > bondAmount) {
-            uint refund = msg.value - bondAmount;
+        if (msg.value > _bondAmount) {
+            uint refund = msg.value - _bondAmount;
             msg.sender.transfer(refund);
         }
     }
 
     /** Category constructor*/
-    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator) public returns (address address){
-        this._bondAmount = bondAmount;
-        this._rewardAmount = rewardAmount;
-        this._endTime = endTime;
-        this._creator = creator;
-        this.isVotingTime = false; //voting period is not open yet
-        this.subNameList = new string[];
-        return this;
+    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator) public {
+        _bondAmount = bondAmount;
+        _rewardAmount = rewardAmount;
+        _endTime = endTime;
+        _creator = creator;
+        isVotingTime = false; //voting period is not open yet
     }
 
     function Submit(bytes32 IPFShash, string submissionName, string[] references, address[] contributors) public checkBondPaid() {
@@ -50,39 +48,37 @@ contract Categories {
             submissionList[submissionName].IPFShash = IPFShash;
             submissionList[submissionName].submissionName = submissionName;
             submissionList[submissionName].references = references;
-            contributors.push(msg.sender);
+            submissionList[submissionName].contributors.push(msg.sender);
             submissionList[submissionName].contributors = contributors;
-            submissionList[submissionName].retrieved = new address[];
 
             submissionList[submissionName].upVotes = 0;
             submissionList[submissionName].downVotes = 0;
 
-            mapping(address => bool) public votedList; // who voted tracker
-            submissionList[submissionName].voted = votedList;
-            this.subNameList.push(subName);
+            // mapping(address => bool) public votedList; 
+            // submissionList[submissionName].voted = votedList; // who voted tracker
+            subNameList.push(submissionName);
 
         }
     }
 
     /** Opens the voting period; submission period is over. */
-    function timeToVote() {
+    function timeToVote() private {
         if (block.timestamp >= _endTime) { //checks if current time is past the end time of the competition
-            this.isVotingTime = true;
+            isVotingTime = true;
         }
     }
 
     function Vote(string subName, uint vote) public {
-        require(vote == -1 || vote == 1);
-        require(submissionList[subName].voted > 0);
+        require(vote == 0 || vote == 1);
         timeToVote();
         require(isVotingTime);
         if (msg.sender == _creator) {
-            this.creatorChoice = subName;
-            submissionList[subName].upVotes += this.subNameList.length;
+            creatorChoice = subName;
+            submissionList[subName].upVotes += subNameList.length;
         } else {
             if (!submissionList[subName].voted[msg.sender]) {
                 submissionList[subName].voted[msg.sender] = true;
-                if (vote == -1) {
+                if (vote == 0) {
                     submissionList[subName].downVotes += 1;
                 } else {
                     submissionList[subName].upVotes += 1;
@@ -96,11 +92,11 @@ contract Categories {
         //voting is not allowed now (do the boolean thang)
         //call superScore??, calculate popular vote, return total score and winner
         //draw??
-        this.isVotingTime = false; //prevents others from voting; voting period is closed
+        isVotingTime = false; //prevents others from voting; voting period is closed
         string subWinner;
         uint trackMaxScore = 0;
-        for (uint i = 0; i < this.subNameList.length; i++) {
-            string tempSub = subNameList[i];
+        for (uint i = 0; i < subNameList.length; i++) {
+            string storage tempSub = subNameList[i];
             uint ups = submissionList[tempSub].upVotes;
             uint downs = submissionList[tempSub].downVotes;
             uint net = ups - downs;
@@ -114,7 +110,7 @@ contract Categories {
                 }
             }
         }
-        this.winners = submissionList[subWinner].contributors;
+        winners = submissionList[subWinner].contributors;
         return subWinner;
     
     }
@@ -122,3 +118,4 @@ contract Categories {
     function withdraw(string subName) public {
         //withdraws bounty + winnings (if applicable) AND updates retrieved list for each submission
     }
+}
