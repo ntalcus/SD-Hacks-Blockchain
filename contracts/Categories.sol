@@ -3,20 +3,26 @@ pragma solidity ^0.4.11;
 /// @title A particular categeory for a hackthon with a submission mechanism.
 contract Categories {
 
-    private uint _bondAmount;
-    private uint _rewardAmount;
-    private uint _endTimeSubmission;
-    private uint _endTimeVote;
+//REMEMBER TO DO IPFS!!!!!!!!!!!
+    uint _bondAmount;
+    uint _rewardAmount;
+    uint _endTimeSubmission;
+    address _creator;
 
     struct Submission {
-        string fileName; //body of work representing the submission (do this off the chain)
+        string submissionName; //body of work representing the submission (do this off the chain)
         string[] references; //references of all other work used in submissions creation
         address[] contributors; //all contributors of submission including sender (assume sender didn't input themselves)
         uint upVotes;
         uint downVotes;
+        mapping voted;
+        address[] voted; // list of addresses who already voted (up or down) for this submission
     }
 
-    mapping(address => Submission) public submissionList; // holds all submissions for this category
+    mapping(string => Submission) public submissionList; // holds all submissions for this category
+    mapping(address => bool) public votedList; // who voted tracker
+
+
 
     modifier checkBondPaid () {
         require (msg.value >= bondAmount);
@@ -28,24 +34,35 @@ contract Categories {
     }
 
     /** Category constructor*/
-    function Categories(uint endTime, uint bondAmount, uint rewardAmount) {
+    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator) {
         this._bondAmount = bondAmount;
         this._rewardAmount = rewardAmount;
-        this._endTime = endTime
+        this._endTime = endTime;
+        this._creator = creator;
+        return this;
     }
 
-    function Submit(string fileName, string[] references, address[] contributors) checkBondPaid() {
-        submissionList[msg.sender].fileName = fileName;
-        submissionList[msg.sender].references = references;
+    function Submit(string submissionName, string[] references, address[] contributors) checkBondPaid() {
+        submissionList[submissionName].submissionName = submissionName;
+        submissionList[submissionName].references = references;
         contributors.push(msg.sender);
-        submissionList[msg.sender].contributors = contributors;
+        submissionList[submissionName].contributors = contributors;
 
-        submissionList[msg.sender].upVotes = 0;
-        submissionList[msg.sender].downVotes = 0;
+        submissionList[submissionName].upVotes = 0;
+        submissionList[submissionName].downVotes = 0;
+
+        submissionList[submissionName].voted = new address[];
     }
 
-    function Vote() {
+    function Vote(string subName, uint vote) {
+        require(vote == -1 || vote == 1);
+        if (!votedList[msg.sender]) {
+            votedList[msg.sender] = true;
+            if (vote == -1) {
 
+            }
+
+        } 
     }
 
 
