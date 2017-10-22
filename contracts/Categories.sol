@@ -10,7 +10,7 @@ contract Categories {
     string creatorChoice;
     string[] subNameList;
     mapping(address => uint) winners;
-    uint finalEndTime;
+    uint _finalEndTime;
 
     struct Submission {
         bytes32 IPFShash; //hash of IPFS hash
@@ -23,7 +23,7 @@ contract Categories {
         mapping(address => bool) voted; // mapping of addresses who already voted (up or down) for this submission
     }
 
-    mapping(string => Submission) public submissionList; // holds all submissions for this category
+    mapping(string => Submission) submissionList; // holds all submissions for this category
 
     modifier checkBondPaid () {
         require (msg.value >= _bondAmount);
@@ -44,7 +44,9 @@ contract Categories {
         isVotingTime = false; //voting period is not open yet
     }
 
-    function Submit(bytes32 IPFShash, string submissionName, string[] references, address[] contributors) public checkBondPaid() {
+    function Submit(bytes32 IPFShash, string submissionName, string[] references, address[] contributors) public 
+        checkBondPaid() 
+        {
         timeToVote();
         if (!isVotingTime) {
             submissionList[submissionName].IPFShash = IPFShash;
@@ -94,7 +96,7 @@ contract Categories {
         //voting is not allowed now (do the boolean thang)
         //call superScore??, calculate popular vote, return total score and winner
         //draw??
-        require(finalEndTime < now);
+        require(_finalEndTime < now);
         isVotingTime = false; //prevents others from voting; voting period is closed
         string subWinner;
         uint trackMaxScore = 0;
@@ -116,7 +118,7 @@ contract Categories {
 
         uint winnersAmount = submissionList[subWinner].contributors.length;
 
-        for (uint i = 0; i < winnersAmount; i++) {
+        for (i = 0; i < winnersAmount; i++) {
             winners[submissionList[subWinner].contributors[i]] = _rewardAmount/winnersAmount;
         }
 

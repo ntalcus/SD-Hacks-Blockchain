@@ -9,7 +9,7 @@ contract CompetitionMaster {
     function createCompetition(string _competitionName, uint _submissionEnd, uint _competitionTime) 
     {
         address _competition = new Competition(msg.sender, _competitionName, _submissionEnd, _competitionTime);
-        competitionMap[_competitionName] = address;
+        competitionMap[_competitionName] = _competition;
     }
 
     function retrieveAddress(string name) returns (address) {

@@ -9,7 +9,7 @@ contract Competition {
 	string competitionName;
 	uint submissionEnd;
 	uint competitionEnd;
-	Status compStatus;
+	status compStatus;
 
 	// Array that holds category addresses.
 	address[] categories;
@@ -28,7 +28,7 @@ contract Competition {
 
 	// Events that mark certain times.
 	event Commenced(address compCreator);
-	event CategoryCreated(address catCreator, string catName, uint bond);
+	event CategoryCreated(address catCreator, string catName, uint bond, uint reward);
 
 	// initiate a competition
 	function Competition
@@ -42,7 +42,6 @@ contract Competition {
 	submissionEnd = now + _submissionEnd;
 	competitionEnd = now + _competitionTime;
 	Commenced(creator);
-	return this;
 	}
 
 	// it's called during the submission phase
@@ -50,19 +49,19 @@ contract Competition {
 	(address catOwner, string catName, uint bond, uint reward) 
 		checkState(1)
 	{
-		if (bond < 0 || catName.length == 0 || reward > msg.value() || 0 <= weight || 100 >= weight) {
+		if (bond < 0 || bytes(catName).length == 0 || reward > msg.value) {
 			throw;
 		}
-		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight, competitionEnd);
+		address _catAddress = new Categories(submissionEnd, bond, reward, catOwner, competitionEnd);
 		categories.push(_catAddress);
 		CategoryCreated(catOwner, catName, bond, reward);
 	}
 	
-	function submissionEnd() 
+	function SubmissionEnd() 
 	checkState(1)
 	{
 		require(now >= submissionEnd);
-		this.compStatus = status.voting;
+		compStatus = status.voting;
 		
 	}
 }
