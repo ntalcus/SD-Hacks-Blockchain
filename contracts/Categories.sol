@@ -9,7 +9,8 @@ contract Categories {
     bool isVotingTime;
     string creatorChoice;
     string[] subNameList;
-    address[] winners;
+    mapping(address => uint) winners;
+    uint finalEndTime;
 
     struct Submission {
         bytes32 IPFShash; //hash of IPFS hash
@@ -34,11 +35,12 @@ contract Categories {
     }
 
     /** Category constructor*/
-    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator) public {
+    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator, uint finalEndTime) public {
         _bondAmount = bondAmount;
         _rewardAmount = rewardAmount;
         _endTime = endTime;
         _creator = creator;
+        _finalEndTime = finalEndTime;
         isVotingTime = false; //voting period is not open yet
     }
 
@@ -92,6 +94,7 @@ contract Categories {
         //voting is not allowed now (do the boolean thang)
         //call superScore??, calculate popular vote, return total score and winner
         //draw??
+        require(finalEndTime < now);
         isVotingTime = false; //prevents others from voting; voting period is closed
         string subWinner;
         uint trackMaxScore = 0;
@@ -110,12 +113,22 @@ contract Categories {
                 }
             }
         }
-        winners = submissionList[subWinner].contributors;
+
+        uint winnersAmount = submissionList[subWinner].contributors.length;
+
+        for (uint i = 0; i < winnersAmount; i++) {
+            winners[submissionList[subWinner].contributors[i]] = _rewardAmount/winnersAmount;
+        }
+
         return subWinner;
     
     }
 
-    function withdraw(string subName) public {
+    function withdraw() public {
         //withdraws bounty + winnings (if applicable) AND updates retrieved list for each submission
+        uint val = winners[msg.sender];
+        winners[msg.sender] -= val;
+        msg.sender.transfer(val);
+
     }
 }
