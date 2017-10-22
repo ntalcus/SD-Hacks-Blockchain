@@ -1,67 +1,70 @@
 pragma solidity ^0.4.11;
-import Categories.sol;
-
 
 contract Competition {
-	// Parameters related to the instantiation of the comepetition which will run for a certain amount of time
+	// Parameters related to the instantiation of the competition which will run for a certain amount of time
 	// The competition 
-	address public host;
-	string public competitionName;
-	uint public submissionEnd;
-	uint public competitionEnd;
-	State compStage;
 
-	// Mapping of categories to owners and addresses
-	mapping(string => catInfo) catInfoMap;
+    // various competition variables
+	address host;
+	string competitionName;
+	uint submissionEnd;
+	uint competitionEnd;
+	Status compStatus;
 
-	// Struct that holds category owner and tells if category is open.
-	struct catInfo {
-		address owner;
-		Stage status;
-	}
+	// Array that holds category addresses.
+	address[] categories;
+	
 
-	//Current state of competition.
-	Stage status;
+	enum status { created, accepting, voting, ended }
 
-	enum status { created, started, ended }
-
-	//Bool related to competition status. If competition underway, False, otherwise True;
-	bool running;
+	// //Bool related to competition status. If competition underway, False, otherwise True;
+	// bool running;
 
 	// Modifiers that check the status
-	modifier checkStage(Stage stage) {
-		require(stage == compStage)
+	modifier checkState(uint state) {
+		require(uint(compStatus) == state)
 		_;
 	}
 
-
-	//Events that mark certain times.
+	// Events that mark certain times.
 	event Commenced(address compCreator);
 	event CategoryCreated(address catCreator, string catName, uint bond);
 	event CategoryClosed(string catName, address winner);
 	event Ended(string compName);
 
-	function Competition(string _competitionName, uint _submissionEnd, uint _competitionTime) {
+	// initiate a competition
+	function Competition
+	(address creator, string _competitionName, uint _submissionEnd, uint _competitionTime) 
+	{
 	if (submissionEnd > competitionEnd) {
 		throw;
 	}
-	host = msg.sender();
+	host = creator;
 	competitionName = _competitionName;
 	submissionEnd = now + _submissionEnd;
 	competitionEnd = now + _competitionTime;
+	Commenced(creator);
+	return this.address;
 	}
 
-	function createCategory(address catOwner, string catName, uint bond) {
-		if (bond <= 0 || catName.length == 0) {
+	// make this function only work if it's called from the commence function or it's called during the submission phase
+	function createCategory
+	(address catOwner, string catName, uint bond, uint reward) 
+		checkState(1)
+	{
+		if (bond < 0 || catName.length == 0 || reward > msg.value() || 0 <= weight || 100 >= weight) {
 			throw;
 		}
-
-
-		// insert constructor here
-		CategoryCreated(catOwner, catName, bond);
-
+		_catAddress = Category.Categories(submissionEnd, bond, reward, catOwner, weight)
+		categories.push
+		CategoryCreated(catOwner, catName, bond, reward);
 	}
-
-	function 
 	
+	function submissionEnd() 
+	checkState(1)
+	{
+		require(now >= submissionEnd);
+		this.compStatus = status.voting;
+		
+	}
 }
