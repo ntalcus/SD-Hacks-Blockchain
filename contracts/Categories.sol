@@ -3,20 +3,28 @@ pragma solidity ^0.4.11;
 /// @title A particular categeory for a hackthon with a submission mechanism.
 contract Categories {
 
-    private uint _bondAmount;
-    private uint _rewardAmount;
-    private uint _endTimeSubmission;
-    private uint _endTimeVote;
+//REMEMBER TO DO IPFS!!!!!!!!!!!
+    uint _bondAmount;
+    uint _rewardAmount;
+    uint _endTime;
+    address _creator;
+    bool isVotingTime;
 
     struct Submission {
-        string fileName; //body of work representing the submission (do this off the chain)
+        bytes32 IPFShash; //hash of IPFS hash
+        string submissionName; //body of work representing the submission (do this off the chain)
         string[] references; //references of all other work used in submissions creation
         address[] contributors; //all contributors of submission including sender (assume sender didn't input themselves)
-        uint upVotes;
-        uint downVotes;
+        address[] retrieved; //list of all contributors who withdrew their bounty and/or bond amount
+        uint upVotes; //amount of upvotes
+        uint downVotes; //amount of downVotes
+        mapping voted; // list of addresses who already voted (up or down) for this submission
     }
 
-    mapping(address => Submission) public submissionList; // holds all submissions for this category
+    mapping(string => Submission) public submissionList; // holds all submissions for this category
+    mapping(address => bool) public votedList; // who voted tracker
+
+
 
     modifier checkBondPaid () {
         require (msg.value >= bondAmount);
@@ -28,162 +36,63 @@ contract Categories {
     }
 
     /** Category constructor*/
-    function Categories(uint endTime, uint bondAmount, uint rewardAmount) {
+    function Categories(uint endTime, uint bondAmount, uint rewardAmount, address creator) public returns (address address){
         this._bondAmount = bondAmount;
         this._rewardAmount = rewardAmount;
-        this._endTime = endTime
+        this._endTime = endTime;
+        this._creator = creator;
+        this.isVotingTime = false; //voting period is not open yet
+        return this;
     }
 
-    function Submit(string fileName, string[] references, address[] contributors) checkBondPaid() {
-        submissionList[msg.sender].fileName = fileName;
-        submissionList[msg.sender].references = references;
-        contributors.push(msg.sender);
-        submissionList[msg.sender].contributors = contributors;
+    function Submit(bytes32 IPFShash, string submissionName, string[] references, address[] contributors) public checkBondPaid() {
+        timeToVote();
+        if (!isVotingTime) {
+            submissionList[submissionName].IPFShash = IPFShash;
+            submissionList[submissionName].submissionName = submissionName;
+            submissionList[submissionName].references = references;
+            contributors.push(msg.sender);
+            submissionList[submissionName].contributors = contributors;
+            submissionList[submissionName].retrieved = new address[];
 
-        submissionList[msg.sender].upVotes = 0;
-        submissionList[msg.sender].downVotes = 0;
-    }
+            submissionList[submissionName].upVotes = 0;
+            submissionList[submissionName].downVotes = 0;
 
-    function Vote() {
-
-    }
-
-
-   // ____________________________________________________________________________________________
-
-
-    // This declares a new complex type which will
-    // be used for variables later.
-    // It will represent a single voter.
-    struct Voter {
-        uint weight; // weight is accumulated by delegation
-        bool voted;  // if true, that person already voted
-        address delegate; // person delegated to
-        uint vote;   // index of the voted proposal
-    }
-
-    // This is a type for a single proposal.
-    struct Proposal {
-        bytes32 name;   // short name (up to 32 bytes)
-        uint voteCount; // number of accumulated votes
-    }
-
-    address public chairperson;
-
-    // This declares a state variable that
-    // stores a `Voter` struct for each possible address.
-    mapping(address => Voter) public voters;
-
-    // A dynamically-sized array of `Proposal` structs.
-    Proposal[] public proposals;
-
-    /// Create a new ballot to choose one of `proposalNames`.
-    function Ballot(bytes32[] proposalNames) {
-        chairperson = msg.sender;
-        voters[chairperson].weight = 1;
-
-        // For each of the provided proposal names,
-        // create a new proposal object and add it
-        // to the end of the array.
-        for (uint i = 0; i < proposalNames.length; i++) {
-            // `Proposal({...})` creates a temporary
-            // Proposal object and `proposals.push(...)`
-            // appends it to the end of `proposals`.
-            proposals.push(Proposal({
-                name: proposalNames[i],
-                voteCount: 0
-            }));
+            submissionList[submissionName].voted = new address[];
         }
     }
 
-    // Give `voter` the right to vote on this ballot.
-    // May only be called by `chairperson`.
-    function giveRightToVote(address voter) {
-        // If the argument of `require` evaluates to `false`,
-        // it terminates and reverts all changes to
-        // the state and to Ether balances. It is often
-        // a good idea to use this if functions are
-        // called incorrectly. But watch out, this
-        // will currently also consume all provided gas
-        // (this is planned to change in the future).
-        require((msg.sender == chairperson) && !voters[voter].voted && (voters[voter].weight == 0));
-        voters[voter].weight = 1;
-    }
-
-    /// Delegate your vote to the voter `to`.
-    function delegate(address to) {
-        // assigns reference
-        Voter storage sender = voters[msg.sender];
-        require(!sender.voted);
-
-        // Self-delegation is not allowed.
-        require(to != msg.sender);
-
-        // Forward the delegation as long as
-        // `to` also delegated.
-        // In general, such loops are very dangerous,
-        // because if they run too long, they might
-        // need more gas than is available in a block.
-        // In this case, the delegation will not be executed,
-        // but in other situations, such loops might
-        // cause a contract to get "stuck" completely.
-        while (voters[to].delegate != address(0)) {
-            to = voters[to].delegate;
-
-            // We found a loop in the delegation, not allowed.
-            require(to != msg.sender);
-        }
-
-        // Since `sender` is a reference, this
-        // modifies `voters[msg.sender].voted`
-        sender.voted = true;
-        sender.delegate = to;
-        Voter storage delegate = voters[to];
-        if (delegate.voted) {
-            // If the delegate already voted,
-            // directly add to the number of votes
-            proposals[delegate.vote].voteCount += sender.weight;
-        } else {
-            // If the delegate did not vote yet,
-            // add to her weight.
-            delegate.weight += sender.weight;
+    /** Opens the voting period; submission period is over. */
+    function timeToVote() {
+        if (block.timestamp >= _endTime) { //checks if current time is past the end time of the competition
+            this.isVotingTime = true;
         }
     }
 
-    /// Give your vote (including votes delegated to you)
-    /// to proposal `proposals[proposal].name`.
-    function vote(uint proposal) {
-        Voter storage sender = voters[msg.sender];
-        require(!sender.voted);
-        sender.voted = true;
-        sender.vote = proposal;
-
-        // If `proposal` is out of the range of the array,
-        // this will throw automatically and revert all
-        // changes.
-        proposals[proposal].voteCount += sender.weight;
-    }
-
-    /// @dev Computes the winning proposal taking all
-    /// previous votes into account.
-    function winningProposal() constant
-            returns (uint winningProposal)
-    {
-        uint winningVoteCount = 0;
-        for (uint p = 0; p < proposals.length; p++) {
-            if (proposals[p].voteCount > winningVoteCount) {
-                winningVoteCount = proposals[p].voteCount;
-                winningProposal = p;
+    function Vote(string subName, uint vote) public {
+        require(vote == -1 || vote == 1);
+        require(submissionList[subName].voted > 0);
+        timeToVote();
+        require(isVotingTime);
+        // require(subName in submissionList);
+        if (!votedList[msg.sender]) {
+            votedList[msg.sender] = true;
+            if (vote == -1) {
+                submissionList[subName].downVotes += 1;
+            } else {
+                submissionList[subName].upVotes += 1;
             }
-        }
+
+        } 
     }
 
-    // Calls winningProposal() function to get the index
-    // of the winner contained in the proposals array and then
-    // returns the name of the winner
-    function winnerName() constant
-            returns (bytes32 winnerName)
-    {
-        winnerName = proposals[winningProposal()].name;
+    function Round() {
+        //voting is allowed now (do the boolean thang)
+        //call superScore??, calculate popular vote, return total score and winner
+        //draw??
+        this.isVotingTime = false; //prevents others from voting; voting period is closed
     }
-}
+
+    function withdraw(string subName) public {
+        //withdraws bounty + winnings (if applicable) AND updates retrieved list for each submission
+    }
